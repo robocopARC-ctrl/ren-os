@@ -1,6 +1,11 @@
 //! this file contains VGA related things
 
-#![no_std]
+use core::fmt;
+use volatile::Volatile;
+use lazy_static::lazy_static;
+use spin::Mutex;
+
+// TODO: Write better comments!
 
 /// C-like enum for representing VGA colors
 /// all of these colors are represented using 
@@ -60,7 +65,7 @@ const BUFFER_WIDTH: usize = 80;
 /// struct to represent our Buffer
 #[repr(transparent)]
 struct Buffer {
-    chars: [[ScreenChar; BUFFER_WIDTH]; BUFFER_HEIGHT],
+    chars: [[Volatile<ScreenChar>; BUFFER_WIDTH]; BUFFER_HEIGHT],
 }
 
 /// this struct is used to write to the screen
@@ -68,6 +73,16 @@ pub struct Writer {
     column_pos: usize,
     color_code: ColorCode,
     buff: &'static mut Buffer,
+}
+
+lazy_static! {
+    pub static ref WRITER: Mutex<Writer> = Mutex::new(Writer {
+        column_pos: 0,
+        color_code: ColorCode::new(Color::Yellow, Color::Black),
+        buff: unsafe {
+            &mut *(0xb8000 as *mut Buffer)
+        },
+    });
 }
 
 impl Writer {
@@ -83,25 +98,71 @@ impl Writer {
                 let col = self.column_pos;
 
                 let color_code = self.color_code;
-                self.buff.chars[row][col] = ScreenChar {
+                self.buff.chars[row][col].write(ScreenChar {
                     ascii_char: byte,
                     color_code
-                };
+                });
                 self.column_pos += 1;
             }
         }
     }
-    pub fn newline(&mut self) {
-        /* TODO  */
+    
+    fn newline(&mut self) {
+        for row in 1..BUFFER_HEIGHT {
+            for col in 0..BUFFER_WIDTH {
+                let character = self.buff.chars[row][col].read();
+                self.buff.chars[row - 1][col].write(character);
+            }
+        }
+        self.clear_row(BUFFER_HEIGHT - 1);
+        self.column_pos = 0;
+    }
+
+    fn clear_row(&mut self, row: usize) {
+        let blank = ScreenChar {
+            ascii_char: b' ',
+            color_code: self.color_code,
+        };
+        for col in 0..BUFFER_WIDTH {
+            self.buff.chars[row][col].write(blank);
+        }
     }
 
     pub fn write_str(&mut self, s: &str) {
         for byte in s.bytes() {
-            // check if byte is ascii or not
-            0x20..=0x7e | b'\n' => self.write_byte(byte),
-            
-            // if not, print ■ char
-            _ => self.write_byte(0xfe);
+            match byte {
+                // check if byte is ascii or not
+                0x20..=0x7e | b'\n' => self.write_byte(byte),
+                
+                // if not, print ■ char
+                _ => self.write_byte(0xfe),
+            }
         }
     }
 }
+
+impl fmt::Write for Writer {
+    fn write_str(&mut self, s:&str) -> fmt::Result {
+        self.write_str(s);
+        Ok(())
+    }
+}
+
+//--------------------------------------------
+#[macro_export]
+macro_rules! print {
+    ($($arg:tt)*) => ($crate::vga::_print(format_args!($($arg)*)));
+}
+
+#[macro_export]
+macro_rules! println {
+    () => ($crate::print!("\n"));
+    ($($arg:tt)*) => ($crate::print!("{}\n", format_args!($($arg)*)));
+}
+
+#[doc(hidden)]
+pub fn _print(args: fmt::Arguments) {
+    use core::fmt::Write;
+    WRITER.lock().write_fmt(args).unwrap();
+}
+
