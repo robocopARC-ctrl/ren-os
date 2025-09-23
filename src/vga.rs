@@ -1,5 +1,6 @@
 //! this file contains VGA related things
 
+use core::format_args;
 use core::fmt;
 use volatile::Volatile;
 use lazy_static::lazy_static;
@@ -47,13 +48,12 @@ impl ColorCode {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[repr(C)]
-
 /// this struct is used to represent a screen char
 /// it includes:
 ///     ascii_char (ASCII char): u8
 ///     color_code (a color code): ColorCode
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(C)]
 struct ScreenChar {
     ascii_char: u8,
     color_code: ColorCode,

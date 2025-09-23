@@ -3,9 +3,9 @@
 
 #![feature(custom_test_frameworks)]
 #![test_runner(crate::test_runner)]
-mod vga;
 
 use core::panic::PanicInfo;
+use ren_os::println;
 
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
