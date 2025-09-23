@@ -41,6 +41,7 @@ pub enum Color {
 struct ColorCode(u8);
 
 impl ColorCode {
+    /// use this function to get a new colorcode
     fn new(fg: Color, bg: Color) -> ColorCode {
         ColorCode((bg as u8) << 4 | (fg as u8))
     }
@@ -75,6 +76,7 @@ pub struct Writer {
     buff: &'static mut Buffer,
 }
 
+// create a static ref to WRITE
 lazy_static! {
     pub static ref WRITER: Mutex<Writer> = Mutex::new(Writer {
         column_pos: 0,
@@ -86,6 +88,7 @@ lazy_static! {
 }
 
 impl Writer {
+    /// use this function to write a byte
     pub fn write_byte(&mut self, byte: u8) {
         match byte {
             b'\n' => self.newline(), // will impl this later
@@ -128,6 +131,7 @@ impl Writer {
         }
     }
 
+    /// use this function to write a string
     pub fn write_str(&mut self, s: &str) {
         for byte in s.bytes() {
             match byte {
@@ -165,4 +169,3 @@ pub fn _print(args: fmt::Arguments) {
     use core::fmt::Write;
     WRITER.lock().write_fmt(args).unwrap();
 }
-
