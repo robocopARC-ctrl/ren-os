@@ -5,3 +5,8 @@
 
 pub mod vga;
 pub mod interrupts;
+
+// load the IDT
+pub fn init() {
+    interrupts::init_idt();
+}

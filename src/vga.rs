@@ -1,6 +1,5 @@
 //! this file contains VGA related things
 
-use core::format_args;
 use core::fmt;
 use volatile::Volatile;
 use lazy_static::lazy_static;
