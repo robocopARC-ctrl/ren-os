@@ -17,8 +17,6 @@ pub fn init_idt() {
     IDT.load();
 }
 
-extern "x86-interrupt" fn breakpoint_handler(
-    stackframe: InterruptStackFrame
-) {
+extern "x86-interrupt" fn breakpoint_handler(stackframe: InterruptStackFrame) {
     println!("EXCEPTION: BREAKPOINT\n{:#?}", stackframe);
 }
